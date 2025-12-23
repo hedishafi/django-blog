@@ -13,9 +13,10 @@ class AccountsViewTests(TestCase):
         }
 
     def test_signup_view(self):
-    response = self.client.post(reverse('accounts:signup'), self.user_data)
-    self.assertEqual(response.status_code, 302)  # redirect after signup
-    self.assertTrue(User.objects.filter(username='testuser').exists())
+        response = self.client.post(reverse('accounts:signup'), self.user_data)
+        self.assertEqual(response.status_code, 302)  # redirect after signup
+        self.assertTrue(User.objects.filter(username='testuser').exists())
+
     def test_login_view(self):
         User.objects.create_user(username='loginuser', password='Testpass123!')
         login_data = {'username': 'loginuser', 'password': 'Testpass123!'}
