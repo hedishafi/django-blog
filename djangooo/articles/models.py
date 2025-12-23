@@ -15,4 +15,4 @@ class Article(models.Model):
         return self.title
 
     def snippet(self):
-    return self.body[:10]  # removed the "..."
+    return self.body[:50] + '...'
