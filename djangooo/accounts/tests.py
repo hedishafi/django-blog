@@ -16,8 +16,8 @@ class AccountViewTests(TestCase):
         'password1': 'Testpass123!',
         'password2': 'Testpass123!'
     })
-    self.assertEqual(response.status_code, 200)  #  Wrong, should be 302 → will fail
-    self.assertTrue(User.objects.filter(username='nonexistentuser').exists())  #  Will fail
+    self.assertEqual(response.status_code, 302)  # Redirect after signup
+    self.assertTrue(User.objects.filter(username='testuser').exists())
 
     def test_login_view(self):
         # Create user first
