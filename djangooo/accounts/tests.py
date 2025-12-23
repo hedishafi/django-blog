@@ -11,13 +11,13 @@ class AccountViewTests(TestCase):
         self.logout_url = reverse('accounts:logout')
 
     def test_signup_view(self):
-    response = self.client.post(self.signup_url, {
-        'username': 'testuser',
-        'password1': 'Testpass123!',
-        'password2': 'Testpass123!'
-    })
-    self.assertEqual(response.status_code, 302)  # Redirect after signup
-    self.assertTrue(User.objects.filter(username='testuser').exists())
+        response = self.client.post(self.signup_url, {
+            'username': 'testuser',
+            'password1': 'Testpass123!',
+            'password2': 'Testpass123!'
+        })
+        self.assertEqual(response.status_code, 302)  # Redirect after signup
+        self.assertTrue(User.objects.filter(username='testuser').exists())
 
     def test_login_view(self):
         # Create user first
@@ -34,4 +34,4 @@ class AccountViewTests(TestCase):
         self.client.login(username='testuser', password='Testpass123!')
         response = self.client.post(self.logout_url)
         self.assertEqual(response.status_code, 302)  # Redirect after logout
-        self.assertFalse('_auth_user_id' in self.client.session)  # User logged out
+        self.assertFalse('_auth_user_id' in self.client.session)  # User should be logged out
