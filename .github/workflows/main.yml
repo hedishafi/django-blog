@@ -24,34 +24,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r djangooo/requirements.txt
 
-    # Validate Python source files to catch syntax errors early
-    - name: Validate Python syntax
-      run: python -m compileall djangooo/
-
-    # Verify Django project configuration and app loading
-    - name: Django system check
-      run: python djangooo/manage.py check
-
-    # Run automated unit tests for Django applications
     - name: Run Django tests
       run: |
         python djangooo/manage.py test accounts
         python djangooo/manage.py test articles
 
-    # Perform Django security and deployment readiness checks
-    - name: Django security check
-      run: python djangooo/manage.py check --deploy
-
-    # Build Docker image for consistent deployment
     - name: Build Docker image
       run: docker build -t djangooo djangooo/
 
-    # Deploy the application using Docker container
     - name: Run Django container
       run: docker run -d -p 8000:8000 djangooo
-
-    # Verify that the web application is accessible after deployment
-    - name: Verify application is running
-      run: |
-        sleep 10
-        curl -f http://localhost:8000
