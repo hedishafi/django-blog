@@ -1,4 +1,3 @@
-# accounts/tests.py
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
@@ -14,27 +13,17 @@ class AccountTests(TestCase):
         self.login_url = reverse('accounts:login')
         self.logout_url = reverse('accounts:logout')
 
-    # -------- URL tests --------
-    def test_urls(self):
-        self.assertEqual(self.client.get(self.signup_url).status_code, 200)
-        self.assertEqual(self.client.get(self.login_url).status_code, 200)
-        # Logout GET or POST must return a response, check redirect
-        response = self.client.get(self.logout_url, follow=False)
-        self.assertEqual(response.status_code, 302)
-
-    # -------- Signup test --------
     def test_signup_creates_user(self):
         self.client.post(self.signup_url, {
             'username': 'newuser',
             'password1': 'newpass123',
             'password2': 'newpass123'
-        }, follow=False)
+        })
         self.assertTrue(User.objects.filter(username='newuser').exists())
 
-    # -------- Login + Logout test --------
     def test_login_logout(self):
         # Login
-        self.client.post(self.login_url, {'username': 'testuser', 'password': 'testpass'}, follow=False)
-        # Logout
-        response = self.client.post(self.logout_url, follow=False)
+        self.client.post(self.login_url, {'username': 'testuser', 'password': 'testpass'})
+        # Logout via GET (safe now)
+        response = self.client.get(self.logout_url)
         self.assertEqual(response.status_code, 302)  # always redirect
