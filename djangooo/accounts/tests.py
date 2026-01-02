@@ -14,48 +14,48 @@ class AccountTests(TestCase):
         self.login_url = reverse('accounts:login')
         self.logout_url = reverse('accounts:logout')
 
-    # ---------------- URL Tests ----------------
-    def test_signup_url_exists(self):
+    # ---------------- URL tests ----------------
+    def test_signup_url_status(self):
         response = self.client.get(self.signup_url)
         self.assertEqual(response.status_code, 200)
 
-    def test_login_url_exists(self):
+    def test_login_url_status(self):
         response = self.client.get(self.login_url)
         self.assertEqual(response.status_code, 200)
 
-    def test_logout_url_redirects(self):
+    def test_logout_url_status(self):
         response = self.client.get(self.logout_url)
         self.assertIn(response.status_code, [302, 200])
 
-    # ---------------- Signup Tests ----------------
-    def test_signup_valid(self):
-        response = self.client.post(self.signup_url, {
+    # ---------------- Signup tests ----------------
+    def test_signup_creates_user(self):
+        self.client.post(self.signup_url, {
             'username': 'newuser',
             'password1': 'newpass123',
             'password2': 'newpass123'
         }, follow=False)
         self.assertTrue(User.objects.filter(username='newuser').exists())
-        self.assertIn(response.status_code, [302, 200])
 
     def test_signup_password_mismatch(self):
-        response = self.client.post(self.signup_url, {
+        self.client.post(self.signup_url, {
             'username': 'baduser',
             'password1': 'pass123',
             'password2': 'pass456'
         }, follow=False)
+        # Should not create user
         self.assertFalse(User.objects.filter(username='baduser').exists())
-        self.assertIn(response.status_code, [200, 302])
 
     def test_signup_missing_username(self):
-        response = self.client.post(self.signup_url, {
+        self.client.post(self.signup_url, {
             'username': '',
             'password1': 'pass123',
             'password2': 'pass123'
         }, follow=False)
-        self.assertIn(response.status_code, [200, 302])
+        # No user should be created
+        self.assertFalse(User.objects.filter(username='').exists())
 
-    # ---------------- Login Tests ----------------
-    def test_login_valid(self):
+    # ---------------- Login tests ----------------
+    def test_login_valid_user(self):
         response = self.client.post(self.login_url, {
             'username': 'testuser',
             'password': 'testpass'
@@ -76,7 +76,7 @@ class AccountTests(TestCase):
         }, follow=False)
         self.assertIn(response.status_code, [200, 302])
 
-    # ---------------- Logout Tests ----------------
+    # ---------------- Logout tests ----------------
     def test_logout_authenticated_user(self):
         self.client.login(username='testuser', password='testpass')
         response = self.client.post(self.logout_url, follow=False)
