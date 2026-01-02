@@ -10,27 +10,79 @@ jobs:
   build-test-deploy:
     runs-on: ubuntu-latest
 
+    env:
+      DJANGO_SETTINGS_MODULE: djangooo.settings
+      PYTHONUNBUFFERED: 1
+
     steps:
+    # 1. Source code checkout
     - name: Checkout code
       uses: actions/checkout@v3
 
+    # 2. Python environment setup
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
 
+    # 3. Dependency installation
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r djangooo/requirements.txt
+        pip install flake8
 
-    - name: Run Django tests
+    # 4. Backend static code analysis (linting)
+    - name: Run flake8 linting
       run: |
-        python djangooo/manage.py test accounts
-        python djangooo/manage.py test articles
+        flake8 djangooo --count --statistics
 
+    # 5. Django system configuration validation
+    - name: Run Django system checks
+      run: |
+        python djangooo/manage.py check
+
+    # 6. Apply database migrations (CI-safe, no local DB dependency)
+    - name: Apply Django migrations
+      run: |
+        python djangooo/manage.py migrate --noinput
+
+    # 7. Isolated unit testing per application
+    - name: Run Accounts app tests
+      run: python djangooo/manage.py test accounts
+
+    - name: Run Articles app tests
+      run: python djangooo/manage.py test articles
+
+    # 8. Test execution timing analysis
+    - name: Measure test execution time
+      run: |
+        start=$(date +%s)
+        python djangooo/manage.py test
+        end=$(date +%s)
+        echo "Total test execution time: $((end-start)) seconds"
+
+    # 9. Detect accidental debug mode in production
+    - name: Prevent DEBUG=True in production
+      run: |
+        if grep -R "DEBUG = True" djangooo/settings.py; then
+          echo "DEBUG mode must not be enabled"
+          exit 1
+        fi
+
+    # 10. Docker image build verification
     - name: Build Docker image
       run: docker build -t djangooo djangooo/
 
+    # 11. Container startup health validation
     - name: Run Django container
-      run: docker run -d -p 8000:8000 djangooo
+      run: |
+        docker run -d -p 8000:8000 --name django_test djangooo
+        sleep 5
+        docker ps | grep django_test
+
+    # 12. Cleanup containers after pipeline
+    - name: Cleanup Docker resources
+      run: |
+        docker stop django_test
+        docker rm django_test
