@@ -37,7 +37,7 @@ class ArticleTests(TestCase):
     def test_article_detail_url_exists(self):
         url = reverse('articles:detail', args=[self.article.slug])
         response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 201)
 
     def test_article_create_url_redirect_if_not_logged_in(self):
         response = self.client.get(self.article_create_url)
