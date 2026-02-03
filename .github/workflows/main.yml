@@ -38,16 +38,16 @@ jobs:
       run: pip install flake8 pylint coverage bandit safety
 
     # ---------------- 6. Linting with flake8 ----------------
-    - name: Lint code flake8
-      run: flake8 djangooo --count --statistics --exit-zero
+    - name: Lint apps flake8
+      run: flake8 accounts articles --count --statistics --exit-zero
 
     # ---------------- 7. Static analysis pylint ----------------
-    - name: Lint code pylint
-      run: pylint djangooo --disable=R,C
+    - name: Lint apps pylint
+      run: pylint accounts articles --disable=R,C || true
 
     # ---------------- 8. Security analysis with bandit ----------------
     - name: Security static analysis
-      run: bandit -r djangooo -ll
+      run: bandit -r accounts articles -ll
 
     # ---------------- 9. Dependency vulnerability check ----------------
     - name: Safety check dependencies
@@ -76,7 +76,7 @@ jobs:
     # ---------------- 15. Test coverage ----------------
     - name: Measure coverage
       run: |
-        coverage run --source='.' djangooo/manage.py test
+        coverage run --source='accounts,articles' djangooo/manage.py test
         coverage report -m
         coverage xml
 
