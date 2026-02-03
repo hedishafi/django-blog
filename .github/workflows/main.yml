@@ -1,4 +1,4 @@
-name: Django CI/CD
+name: Ultimate Django CI/CD
 
 on:
   push:
@@ -9,80 +9,146 @@ on:
 jobs:
   build-test-deploy:
     runs-on: ubuntu-latest
-
     env:
       DJANGO_SETTINGS_MODULE: djangooo.settings
       PYTHONUNBUFFERED: 1
 
     steps:
-    # 1. Source code checkout
+
+    # ---------------- 1. Checkout code ----------------
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # 2. Python environment setup
+    # ---------------- 2. Setup Python ----------------
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
 
-    # 3. Dependency installation
+    # ---------------- 3. Upgrade pip ----------------
+    - name: Upgrade pip
+      run: python -m pip install --upgrade pip
+
+    # ---------------- 4. Install dependencies ----------------
     - name: Install dependencies
+      run: pip install -r djangooo/requirements.txt
+
+    # ---------------- 5. Install dev tools ----------------
+    - name: Install dev tools
+      run: pip install flake8 pylint coverage bandit safety
+
+    # ---------------- 6. Linting with flake8 ----------------
+    - name: Lint code flake8
+      run: flake8 djangooo --count --statistics --exit-zero
+
+    # ---------------- 7. Static analysis pylint ----------------
+    - name: Lint code pylint
+      run: pylint djangooo --disable=R,C
+
+    # ---------------- 8. Security analysis with bandit ----------------
+    - name: Security static analysis
+      run: bandit -r djangooo -ll
+
+    # ---------------- 9. Dependency vulnerability check ----------------
+    - name: Safety check dependencies
+      run: safety check
+
+    # ---------------- 10. Django system check ----------------
+    - name: Django system check
+      run: python djangooo/manage.py check
+
+    # ---------------- 11. Check for pending migrations ----------------
+    - name: Check migrations
+      run: python djangooo/manage.py makemigrations --check --dry-run
+
+    # ---------------- 12. Apply database migrations ----------------
+    - name: Apply migrations
+      run: python djangooo/manage.py migrate --noinput
+
+    # ---------------- 13. Run unit tests accounts ----------------
+    - name: Test Accounts app
+      run: python djangooo/manage.py test accounts --verbosity=2
+
+    # ---------------- 14. Run unit tests articles ----------------
+    - name: Test Articles app
+      run: python djangooo/manage.py test articles --verbosity=2
+
+    # ---------------- 15. Test coverage ----------------
+    - name: Measure coverage
       run: |
-        python -m pip install --upgrade pip
-        pip install -r djangooo/requirements.txt
-        pip install flake8
+        coverage run --source='.' djangooo/manage.py test
+        coverage report -m
+        coverage xml
 
-    # 4. Backend static code analysis (linting)
-    - name: Run flake8 linting
+    # ---------------- 16. Check for DEBUG=True ----------------
+    - name: Prevent DEBUG=True
       run: |
-        flake8 djangooo --count --statistics || true
+        if grep -R "DEBUG = True" djangooo/settings.py; then
+          echo "DEBUG mode is enabled in production!"
+          exit 1
+        fi
 
-    # 5. Django system configuration validation
-    - name: Run Django system checks
+    # ---------------- 17. Secret key detection ----------------
+    - name: Check for secrets
       run: |
-        python djangooo/manage.py check
+        if grep -R "SECRET_KEY" djangooo/settings.py; then
+          echo "Potential secret key leak!"
+        fi
 
-    # 6. Apply database migrations (CI-safe, no local DB dependency)
-    - name: Apply Django migrations
+    # ---------------- 18. Build Docker image ----------------
+    - name: Build Docker image
+      run: docker build -t djangooo:latest djangooo/
+
+    # ---------------- 19. Scan Docker image for vulnerabilities ----------------
+    - name: Docker security scan
+      run: docker scan djangooo:latest --accept-license || true
+
+    # ---------------- 20. Run Django container ----------------
+    - name: Run Django container
       run: |
-        python djangooo/manage.py migrate --noinput
+        docker run -d -p 8000:8000 --name django_test djangooo:latest
+        sleep 5
 
-    # 7. Isolated unit testing per application
-    - name: Run Accounts app tests
-      run: python djangooo/manage.py test accounts
+    # ---------------- 21. Health check container ----------------
+    - name: Health check Django container
+      run: docker exec django_test curl -f http://localhost:8000 || exit 1
 
-    - name: Run Articles app tests
-      run: python djangooo/manage.py test articles
+    # ---------------- 22. Browser smoke test ----------------
+    - name: Browser test with curl
+      run: |
+        curl -f http://localhost:8000/accounts/signup/ || exit 1
+        curl -f http://localhost:8000/accounts/login/ || exit 1
+        curl -f http://localhost:8000/articles/ || exit 1
 
-    # 8. Test execution timing analysis
-    - name: Measure test execution time
+    # ---------------- 23. Generate DB dump backup ----------------
+    - name: Backup DB
+      run: python djangooo/manage.py dumpdata --exclude auth.permission --exclude contenttypes > db_backup.json
+
+    # ---------------- 24. Run migration rollback test ----------------
+    - name: Test rollback
+      run: |
+        python djangooo/manage.py migrate accounts zero
+        python djangooo/manage.py migrate accounts
+
+    # ---------------- 25. Measure test execution time ----------------
+    - name: Measure test time
       run: |
         start=$(date +%s)
         python djangooo/manage.py test
         end=$(date +%s)
         echo "Total test execution time: $((end-start)) seconds"
 
-    # 9. Detect accidental debug mode in production
-    - name: Prevent DEBUG=True in production
-      run: |
-        if grep -R "DEBUG = True" djangooo/settings.py; then
-          echo "DEBUG mode must not be enabled"
-          exit 1
-        fi
+    # ---------------- 26. Deploy to staging server (mock) ----------------
+    - name: Deploy to staging
+      run: echo "Deploying to staging server..."
 
-    # 10. Docker image build verification
-    - name: Build Docker image
-      run: docker build -t djangooo djangooo/
-
-    # 11. Container startup health validation
-    - name: Run Django container
-      run: |
-        docker run -d -p 8000:8000 --name django_test djangooo
-        sleep 5
-        docker ps | grep django_test
-
-    # 12. Cleanup containers after pipeline
-    - name: Cleanup Docker resources
+    # ---------------- 27. Stop and remove container ----------------
+    - name: Cleanup Docker
       run: |
         docker stop django_test
         docker rm django_test
+        docker rmi djangooo:latest
+
+    # ---------------- 28. Notify success ----------------
+    - name: Notify CI/CD success
+      run: echo "Pipeline completed successfully ✅"
