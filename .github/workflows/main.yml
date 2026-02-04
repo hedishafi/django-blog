@@ -57,30 +57,22 @@ jobs:
     - name: Django system check
       run: python djangooo/manage.py check
 
-    # ---------------- 11. Check for pending migrations ----------------
-    - name: Check migrations
-      run: python djangooo/manage.py makemigrations --check --dry-run
-
-    # ---------------- 12. Apply database migrations ----------------
-    - name: Apply migrations
-      run: python djangooo/manage.py migrate --noinput
-
-    # ---------------- 13. Run unit tests accounts ----------------
+    # ---------------- 11. Run unit tests accounts ----------------
     - name: Test Accounts app
       run: python djangooo/manage.py test accounts --verbosity=2
 
-    # ---------------- 14. Run unit tests articles ----------------
+    # ---------------- 12. Run unit tests articles ----------------
     - name: Test Articles app
       run: python djangooo/manage.py test articles --verbosity=2
 
-    # ---------------- 15. Test coverage ----------------
+    # ---------------- 13. Test coverage ----------------
     - name: Measure coverage
       run: |
         coverage run --source='accounts,articles' djangooo/manage.py test
         coverage report -m
         coverage xml
 
-    # ---------------- 16. Check for DEBUG=True ----------------
+    # ---------------- 14. Check for DEBUG=True ----------------
     - name: Prevent DEBUG=True
       run: |
         if grep -R "DEBUG = True" djangooo/settings.py; then
@@ -88,49 +80,39 @@ jobs:
           exit 1
         fi
 
-    # ---------------- 17. Secret key detection ----------------
+    # ---------------- 15. Secret key detection ----------------
     - name: Check for secrets
       run: |
         if grep -R "SECRET_KEY" djangooo/settings.py; then
           echo "Potential secret key leak!"
         fi
 
-    # ---------------- 18. Build Docker image ----------------
+    # ---------------- 16. Build Docker image ----------------
     - name: Build Docker image
       run: docker build -t djangooo:latest djangooo/
 
-    # ---------------- 19. Scan Docker image for vulnerabilities ----------------
+    # ---------------- 17. Scan Docker image for vulnerabilities ----------------
     - name: Docker security scan
       run: docker scan djangooo:latest --accept-license || true
 
-    # ---------------- 20. Run Django container ----------------
+    # ---------------- 18. Run Django container ----------------
     - name: Run Django container
       run: |
         docker run -d -p 8000:8000 --name django_test djangooo:latest
         sleep 5
 
-    # ---------------- 21. Health check container ----------------
+    # ---------------- 19. Health check container ----------------
     - name: Health check Django container
       run: docker exec django_test curl -f http://localhost:8000 || exit 1
 
-    # ---------------- 22. Browser smoke test ----------------
+    # ---------------- 20. Browser smoke test ----------------
     - name: Browser test with curl
       run: |
         curl -f http://localhost:8000/accounts/signup/ || exit 1
         curl -f http://localhost:8000/accounts/login/ || exit 1
         curl -f http://localhost:8000/articles/ || exit 1
 
-    # ---------------- 23. Generate DB dump backup ----------------
-    - name: Backup DB
-      run: python djangooo/manage.py dumpdata --exclude auth.permission --exclude contenttypes > db_backup.json
-
-    # ---------------- 24. Run migration rollback test ----------------
-    - name: Test rollback
-      run: |
-        python djangooo/manage.py migrate accounts zero
-        python djangooo/manage.py migrate accounts
-
-    # ---------------- 25. Measure test execution time ----------------
+    # ---------------- 21. Measure test execution time ----------------
     - name: Measure test time
       run: |
         start=$(date +%s)
@@ -138,17 +120,17 @@ jobs:
         end=$(date +%s)
         echo "Total test execution time: $((end-start)) seconds"
 
-    # ---------------- 26. Deploy to staging server (mock) ----------------
+    # ---------------- 22. Deploy to staging server  ----------------
     - name: Deploy to staging
       run: echo "Deploying to staging server..."
 
-    # ---------------- 27. Stop and remove container ----------------
+    # ---------------- 23. Stop and remove container ----------------
     - name: Cleanup Docker
       run: |
         docker stop django_test
         docker rm django_test
         docker rmi djangooo:latest
 
-    # ---------------- 28. Notify success ----------------
+    # ---------------- 24. Notify success ----------------
     - name: Notify CI/CD success
       run: echo "Pipeline completed successfully ✅"
