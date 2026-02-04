@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 
 # Create your models here.
-class Article(models.Model):
+class Arcticle(models.Model):
     title = models.CharField(max_length=100)
     slug = models.SlugField()
     body = models.TextField()
