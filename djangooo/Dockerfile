@@ -3,7 +3,7 @@ FROM python:3.11-slim
 
 # Set working directory inside container
 WORKDIR /app
-# Install curl and other tools
+# Install curl and other toolss
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 # Copy dependencies first (faster rebuilds)
