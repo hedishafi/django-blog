@@ -14,7 +14,7 @@ class ArticleTests(TestCase):
         self.article_list_url = reverse('articles:list')
         self.article_create_url = reverse('articles:create')
 
-        # Sample article
+        # Sample articl
         self.article = Article.objects.create(
             title="Test Article",
             slug="test-article",
